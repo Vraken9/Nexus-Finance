@@ -55,63 +55,69 @@ class _TrendChartState extends State<TrendChart> {
     );
   }
 
-  LineChartData _buildChartData() => LineChartData(
-        minX: 1,
-        maxX: 31,
-        minY: 0,
-        maxY: widget.maxY,
-        gridData: _buildGridData(),
-        borderData: FlBorderData(show: false),
-        titlesData: _buildTitlesData(),
-        lineTouchData: _buildTouchData(),
-        lineBarsData: [_buildLineBar()],
-      );
+  LineChartData _buildChartData() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return LineChartData(
+      minX: 1,
+      maxX: 31,
+      minY: 0,
+      maxY: widget.maxY,
+      gridData: _buildGridData(isDark),
+      borderData: FlBorderData(show: false),
+      titlesData: _buildTitlesData(),
+      lineTouchData: _buildTouchData(isDark),
+      lineBarsData: [_buildLineBar(isDark)],
+    );
+  }
 
   // ── Line bar ──────────────────────────────────────────────────────────────
 
-  LineChartBarData _buildLineBar() => LineChartBarData(
-        spots: widget.spots,
-        isCurved: true,
-        curveSmoothness: 0.3,
-        color: AppColors.chartLine,
-        barWidth: 2.5,
-        isStrokeCapRound: true,
-        dotData: FlDotData(
-          show: true,
-          getDotPainter: (spot, percent, bar, index) {
-            final isTouched = index == _touchedIndex;
-            return FlDotCirclePainter(
-              radius: isTouched ? 6 : 3,
-              color: isTouched ? AppColors.primary : AppColors.surface,
-              strokeWidth: 2,
-              strokeColor: AppColors.chartLine,
-            );
-          },
+  LineChartBarData _buildLineBar(bool isDark) {
+    final lineColor = isDark ? AppColors.chartLineDark : AppColors.chartLine;
+    final dotSurface = isDark ? AppColors.surfaceDark : AppColors.surface;
+    final fillStart = isDark ? AppColors.chartFillStartDark : AppColors.chartFillStart;
+    final fillEnd = isDark ? AppColors.chartFillEndDark : AppColors.chartFillEnd;
+    return LineChartBarData(
+      spots: widget.spots,
+      isCurved: true,
+      curveSmoothness: 0.3,
+      color: lineColor,
+      barWidth: 2.5,
+      isStrokeCapRound: true,
+      dotData: FlDotData(
+        show: true,
+        getDotPainter: (spot, percent, bar, index) {
+          final isTouched = index == _touchedIndex;
+          return FlDotCirclePainter(
+            radius: isTouched ? 6 : 3,
+            color: isTouched ? AppColors.primary : dotSurface,
+            strokeWidth: 2,
+            strokeColor: lineColor,
+          );
+        },
+      ),
+      belowBarData: BarAreaData(
+        show: true,
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [fillStart, fillEnd],
         ),
-        belowBarData: BarAreaData(
-          show: true,
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.chartFillStart, // 33 % Slate Blue
-              AppColors.chartFillEnd,  //  0 % Transparent
-            ],
-          ),
-        ),
-      );
+      ),
+    );
+  }
 
   // ── Grid ──────────────────────────────────────────────────────────────────
 
-  FlGridData _buildGridData() {
-    // Guard: if maxY is 0 after padding, use 1 to avoid division by zero.
+  FlGridData _buildGridData(bool isDark) {
     final interval = widget.maxY > 0 ? widget.maxY / 4 : 25.0;
+    final gridColor = isDark ? AppColors.borderDark : AppColors.border;
     return FlGridData(
       show: true,
       drawVerticalLine: false,
       horizontalInterval: interval,
-      getDrawingHorizontalLine: (_) => const FlLine(
-        color: AppColors.border,
+      getDrawingHorizontalLine: (_) => FlLine(
+        color: gridColor,
         strokeWidth: 1,
         dashArray: [4, 4],
       ),
@@ -161,7 +167,7 @@ class _TrendChartState extends State<TrendChart> {
 
   // ── Touch ─────────────────────────────────────────────────────────────────
 
-  LineTouchData _buildTouchData() => LineTouchData(
+  LineTouchData _buildTouchData(bool isDark) => LineTouchData(
         handleBuiltInTouches: true,
         touchCallback: (event, response) {
           final spots = response?.lineBarSpots;

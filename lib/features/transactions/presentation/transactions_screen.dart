@@ -7,6 +7,8 @@ import '../../../shared/widgets/empty_state.dart';
 import '../domain/grouped_transactions_provider.dart';
 import '../domain/transaction_list_notifier.dart';
 import 'add_transaction_screen.dart';
+import 'category_pie_chart_screen.dart';
+import 'transaction_detail_screen.dart';
 import 'widgets/transaction_tile.dart';
 
 /// ─────────────────────────────────────────────────────────────────────────
@@ -31,14 +33,31 @@ class TransactionsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final groups = ref.watch(groupedTransactionsProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? AppColors.backgroundDark : AppColors.background;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: bgColor,
       appBar: AppBar(
         title: Text('Riwayat Transaksi', style: AppTextStyles.labelLarge),
-        backgroundColor: AppColors.background,
+        backgroundColor: bgColor,
         elevation: 0,
         scrolledUnderElevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.pie_chart_outline_rounded),
+            tooltip: 'Analisis Kategori',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => CategoryPieChartScreen(
+                  selectedMonth: DateTime(
+                      DateTime.now().year, DateTime.now().month),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openAddTransaction(context),
@@ -92,10 +111,11 @@ class _GroupedListState extends ConsumerState<_GroupedList> {
             sliver: SliverToBoxAdapter(
               child: _TransactionGroupCard(
                 group: group,
-                onEdit: (tx) => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => AddTransactionScreen(editModel: tx)),
+                onTap: (tx) => showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => TransactionDetailScreen(transaction: tx),
                 ),
                 onDelete: (tx) async {
                   final confirmed = await _confirmDelete(context);
@@ -146,6 +166,7 @@ class _DateHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
       child: Row(
@@ -154,13 +175,13 @@ class _DateHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
             decoration: BoxDecoration(
-              color: AppColors.surfaceVariant,
+              color: isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               group.label,
               style: AppTextStyles.labelSmall.copyWith(
-                color: AppColors.textPrimary,
+                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimary,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0,
               ),
@@ -200,31 +221,34 @@ class _DateHeader extends StatelessWidget {
 class _TransactionGroupCard extends StatelessWidget {
   const _TransactionGroupCard({
     required this.group,
-    required this.onEdit,
+    required this.onTap,
     required this.onDelete,
   });
 
   final TransactionGroup group;
-  final void Function(dynamic tx) onEdit;
+  final void Function(dynamic tx) onTap;
   final Future<void> Function(dynamic tx) onDelete;
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surface;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.border;
     return Container(
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: surfaceColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         children: [
           for (int i = 0; i < group.transactions.length; i++) ...[
             if (i > 0)
-              const Divider(
+              Divider(
                 height: 1,
                 thickness: 1,
-                color: AppColors.border,
+                color: borderColor,
                 indent: 76,
                 endIndent: 16,
               ),
@@ -233,13 +257,12 @@ class _TransactionGroupCard extends StatelessWidget {
               direction: DismissDirection.endToStart,
               background: _DeleteBackground(),
               confirmDismiss: (_) async {
-                // Return null to let the caller handle via onDelete
                 await onDelete(group.transactions[i]);
-                return false; // Never auto-dismiss; manual removal via ref.invalidate
+                return false;
               },
               child: TransactionTile(
                 transaction: group.transactions[i],
-                onTap: () => onEdit(group.transactions[i]),
+                onTap: () => onTap(group.transactions[i]),
               ),
             ),
           ],

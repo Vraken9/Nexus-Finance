@@ -52,7 +52,7 @@ class DashboardNotifier extends AsyncNotifier<DashboardState> {
     final dailyTotals = txRepo.getDailyExpenseTotals(monthTxns, month);
     final income = txRepo.getMonthlyIncomeFromList(monthTxns);
     final expenses = txRepo.getMonthlyExpensesFromList(monthTxns);
-    final totalBalance = acRepo.getTotalBalance();
+    final totalBalance = txRepo.getAllTimeBalance();
     final accounts = acRepo.getAllActive();
 
     // Show the 5 most recent transactions for THIS month (not global).

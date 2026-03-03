@@ -5,6 +5,8 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/utils/currency_formatter.dart';
 import '../../../core/utils/date_helpers.dart';
+import '../../transactions/presentation/category_pie_chart_screen.dart';
+import '../../transactions/presentation/transaction_detail_screen.dart';
 import '../../transactions/presentation/widgets/transaction_tile.dart';
 import '../domain/dashboard_notifier.dart';
 import '../domain/dashboard_state.dart';
@@ -31,7 +33,7 @@ class DashboardScreen extends ConsumerWidget {
     final asyncState = ref.watch(dashboardNotifierProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: asyncState.when(
         loading: () => const Center(
           child: CircularProgressIndicator(color: AppColors.primary),
@@ -57,6 +59,11 @@ class _DashboardBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(dashboardNotifierProvider.notifier);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDark ? AppColors.backgroundDark : AppColors.background;
+    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surface;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.border;
+    final iconColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimary;
 
     return RefreshIndicator(
       color: AppColors.primary,
@@ -66,16 +73,27 @@ class _DashboardBody extends ConsumerWidget {
         slivers: [
           // ── App Bar ───────────────────────────────────────────────────────
           SliverAppBar(
-            backgroundColor: AppColors.background,
+            backgroundColor: bgColor,
             elevation: 0,
             pinned: true,
             expandedHeight: 0,
             title: Text('Nexus Finance', style: AppTextStyles.labelLarge),
             actions: [
+              // Pie chart button
+              IconButton(
+                icon: Icon(Icons.pie_chart_outline_rounded, color: iconColor),
+                tooltip: 'Analisis Kategori',
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CategoryPieChartScreen(
+                        selectedMonth: state.selectedMonth),
+                  ),
+                ),
+              ),
               // Month navigator – back
               IconButton(
-                icon: const Icon(Icons.chevron_left,
-                    color: AppColors.textPrimary),
+                icon: Icon(Icons.chevron_left, color: iconColor),
                 onPressed: () => notifier.changeMonth(DateTime(
                   state.selectedMonth.year,
                   state.selectedMonth.month - 1,
@@ -91,8 +109,7 @@ class _DashboardBody extends ConsumerWidget {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.chevron_right,
-                    color: AppColors.textPrimary),
+                icon: Icon(Icons.chevron_right, color: iconColor),
                 onPressed: () => notifier.changeMonth(DateTime(
                   state.selectedMonth.year,
                   state.selectedMonth.month + 1,
@@ -140,9 +157,9 @@ class _DashboardBody extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.fromLTRB(12, 20, 12, 12),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: surfaceColor,
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: borderColor),
                     ),
                     child: TrendChart(
                       spots: state.chartSpots,
@@ -176,24 +193,32 @@ class _DashboardBody extends ConsumerWidget {
                   else
                     Container(
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: surfaceColor,
                         borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: borderColor),
                       ),
                       child: ListView.separated(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: state.recentTransactions.length,
-                        separatorBuilder: (_, __) => const Divider(
+                        separatorBuilder: (_, __) => Divider(
                           height: 1,
                           thickness: 1,
-                          color: AppColors.border,
+                          color: borderColor,
                           indent: 76,
                           endIndent: 16,
                         ),
                         itemBuilder: (_, i) => TransactionTile(
                           transaction: state.recentTransactions[i],
                           showDate: true,
+                          onTap: () => showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => TransactionDetailScreen(
+                              transaction: state.recentTransactions[i],
+                            ),
+                          ),
                         ),
                       ),
                     ),

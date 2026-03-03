@@ -52,14 +52,19 @@ class _AccountCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accent = _accent;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surface;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.border;
+    final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimary;
+    final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
 
     return Container(
       width: 140,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: surfaceColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: borderColor),
         boxShadow: [
           BoxShadow(
             color: accent.withAlpha(20),
@@ -72,7 +77,6 @@ class _AccountCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Icon badge
           Container(
             width: 36,
             height: 36,
@@ -86,15 +90,12 @@ class _AccountCard extends StatelessWidget {
               size: 18,
             ),
           ),
-
-          // Name + balance
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 account.name,
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.bodySmall.copyWith(color: textSecondary),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -102,7 +103,7 @@ class _AccountCard extends StatelessWidget {
               Text(
                 CurrencyFormatter.formatCompact(account.balance),
                 style: AppTextStyles.labelMedium.copyWith(
-                  color: AppColors.textPrimary,
+                  color: textPrimary,
                   fontWeight: FontWeight.w700,
                 ),
                 maxLines: 1,

@@ -1,4 +1,4 @@
-﻿import 'dart:io';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -139,7 +139,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     final notifier = ref.read(transactionFormProvider.notifier);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           widget.editModel != null
@@ -147,7 +147,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               : AppStrings.addTransaction,
           style: AppTextStyles.labelLarge,
         ),
-        backgroundColor: AppColors.background,
         elevation: 0,
       ),
       body: SingleChildScrollView(
@@ -162,14 +161,15 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             ),
             const SizedBox(height: 24),
 
-            // â”€â”€ Amount â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+            // ── Amount ────────────────────────────────────────────────────
             _FieldLabel(label: AppStrings.fieldAmount),
             TextField(
               controller: _amountCtrl,
               focusNode: _amountFocus,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               textInputAction: TextInputAction.next,
-              onSubmitted: (_) => _moveFocus(_noteFocus),
+              onSubmitted: (_) =>
+                  _moveFocus(formState.isTransfer ? _feeFocus : _noteFocus),
               onChanged: notifier.setAmount,
               decoration: InputDecoration(
                 prefixText: 'Rp ',
@@ -337,10 +337,12 @@ class _TypeTabBar extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
         height: 48,
         decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
+          color: isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
@@ -362,7 +364,7 @@ class _TypeTabBar extends StatelessWidget {
                       style: AppTextStyles.labelMedium.copyWith(
                         color: selected
                             ? Colors.white
-                            : AppColors.textSecondary,
+                            : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary),
                         fontWeight:
                             selected ? FontWeight.w600 : FontWeight.w400,
                         fontSize: 12,
@@ -375,6 +377,7 @@ class _TypeTabBar extends StatelessWidget {
           }).toList(),
         ),
       );
+  }
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -423,17 +426,25 @@ class _DateTimePickerField extends StatelessWidget {
         },
         child: Container(
           width: double.infinity,
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.surfaceDark
+                : AppColors.surface,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.borderDark
+                  : AppColors.border,
+            ),
           ),
           child: Row(
             children: [
-              const Icon(Icons.calendar_today_outlined,
-                  size: 18, color: AppColors.textSecondary),
+              Icon(Icons.calendar_today_outlined,
+                  size: 18,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
@@ -442,8 +453,11 @@ class _DateTimePickerField extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Icon(Icons.edit_outlined,
-                  size: 16, color: AppColors.textSecondary),
+              Icon(Icons.edit_outlined,
+                  size: 16,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondary),
             ],
           ),
         ),
@@ -482,7 +496,8 @@ class _CategoryDropdown extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         DropdownButtonFormField<String>(
-          value: safeValue,
+          // ignore: deprecated_member_use
+          initialValue: safeValue,
           decoration: InputDecoration(errorText: error),
           hint: Text(AppStrings.selectCategory),
           items: categories
@@ -534,6 +549,7 @@ class _AssetSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -546,38 +562,28 @@ class _AssetSelector extends StatelessWidget {
               onTap: () => onChanged(asset),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 160),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? asset.color.withOpacity(0.15)
-                      : AppColors.surfaceVariant,
+                      ? asset.color.withValues(alpha: 0.15)
+                      : (isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isSelected ? asset.color : AppColors.border,
+                    color: isSelected ? asset.color : (isDark ? AppColors.borderDark : AppColors.border),
                     width: isSelected ? 1.8 : 1.0,
                   ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      asset.icon,
-                      size: 18,
-                      color: isSelected
-                          ? asset.color
-                          : AppColors.textSecondary,
-                    ),
+                    Icon(asset.icon, size: 18,
+                        color: isSelected ? asset.color : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary)),
                     const SizedBox(width: 8),
                     Text(
                       asset.label,
                       style: AppTextStyles.labelSmall.copyWith(
-                        color: isSelected
-                            ? asset.color
-                            : AppColors.textSecondary,
-                        fontWeight: isSelected
-                            ? FontWeight.w600
-                            : FontWeight.w400,
+                        color: isSelected ? asset.color : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondary),
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                       ),
                     ),
                   ],
@@ -588,13 +594,7 @@ class _AssetSelector extends StatelessWidget {
         ),
         if (error != null) ...[
           const SizedBox(height: 6),
-          Text(
-            error!,
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.error,
-              fontSize: 12,
-            ),
-          ),
+          Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 12)),
         ],
       ],
     );
@@ -632,7 +632,8 @@ class _AccountDropdown extends ConsumerWidget {
         : null;
 
     return DropdownButtonFormField<String>(
-      value: safeValue,
+      // ignore: deprecated_member_use
+      initialValue: safeValue,
       decoration: InputDecoration(errorText: error),
       hint: Text(AppStrings.selectAccount),
       items: accounts

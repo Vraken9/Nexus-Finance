@@ -243,6 +243,16 @@ class TransactionRepository {
   double getMonthlyExpenses(DateTime month) =>
       getMonthlyExpensesFromList(getByMonth(month));
 
+  /// All-time net balance: total income − total expense (transfers excluded).
+  /// This is the correct "Total Saldo" because income/expense transactions
+  /// use [assetType] metadata — AccountModel.balance only updates for transfers.
+  double getAllTimeBalance() {
+    final all = getAllSortedByDate();
+    final income = all.where((t) => t.isIncome).fold(0.0, (s, t) => s + t.amount);
+    final expense = all.where((t) => t.isExpense).fold(0.0, (s, t) => s + t.amount);
+    return income - expense;
+  }
+
   /// Returns a [Map<String, double>] of categoryId → total expense for [month].
   Map<String, double> getExpensesByCategory(DateTime month) {
     final txns = getByMonth(month).where((t) => t.isExpense);
@@ -252,6 +262,108 @@ class TransactionRepository {
       result[tx.categoryId!] = (result[tx.categoryId!] ?? 0.0) + tx.amount;
     }
     return result;
+  }
+
+  /// Seeds demo transactions for February 2026 if the month is empty.
+  /// Idempotent: returns immediately when any Feb 2026 transaction already exists.
+  Future<void> seedFebruary2026Demo() async {
+    final existing = getByMonth(DateTime(2026, 2, 1));
+    if (existing.isNotEmpty) return;
+
+    // Income/expense use assetType; transfers use account UUIDs.
+    const cash = 'cash';
+    const bank = 'bank_transfer';
+    const wallet = 'e_wallet';
+    const credit = 'credit';
+
+    final txns = <TransactionModel>[
+      // Income
+      TransactionModel()
+        ..amount = 20000000
+        ..date = DateTime(2026, 2, 1, 9, 0)
+        ..type = 'income'
+        ..categoryId = 'cat-salary'
+        ..assetType = bank
+        ..note = 'Gaji Februari',
+      TransactionModel()
+        ..amount = 5500000
+        ..date = DateTime(2026, 2, 10, 18, 0)
+        ..type = 'income'
+        ..categoryId = 'cat-freelance'
+        ..assetType = bank
+        ..note = 'Project desain',
+
+      // Expense — one per day with stable range 350k–850k
+      TransactionModel()..amount = 650000..date = DateTime(2026, 2, 1, 8, 45)..type = 'expense'..categoryId = 'cat-food'..assetType = wallet..note = 'Sarapan & kopi',
+      TransactionModel()..amount = 520000..date = DateTime(2026, 2, 2, 12, 30)..type = 'expense'..categoryId = 'cat-food'..assetType = wallet..note = 'Makan siang tim',
+      TransactionModel()..amount = 480000..date = DateTime(2026, 2, 3, 8, 0)..type = 'expense'..categoryId = 'cat-transport'..assetType = cash..note = 'BBM & parkir',
+      TransactionModel()..amount = 720000..date = DateTime(2026, 2, 4, 19, 45)..type = 'expense'..categoryId = 'cat-entertainment'..assetType = credit..note = 'Nonton & makan',
+      TransactionModel()..amount = 550000..date = DateTime(2026, 2, 5, 19, 30)..type = 'expense'..categoryId = 'cat-food'..assetType = wallet..note = 'Makan malam keluarga',
+      TransactionModel()..amount = 430000..date = DateTime(2026, 2, 6, 14, 15)..type = 'expense'..categoryId = 'cat-food'..assetType = wallet..note = 'Ngopi & snack',
+      TransactionModel()..amount = 620000..date = DateTime(2026, 2, 7, 10, 0)..type = 'expense'..categoryId = 'cat-shopping'..assetType = bank..note = 'Peralatan rumah tangga',
+      TransactionModel()..amount = 580000..date = DateTime(2026, 2, 8, 15, 0)..type = 'expense'..categoryId = 'cat-health'..assetType = bank..note = 'Check-up ringan',
+      TransactionModel()..amount = 470000..date = DateTime(2026, 2, 9, 18, 20)..type = 'expense'..categoryId = 'cat-food'..assetType = cash..note = 'Jajanan malam',
+      TransactionModel()..amount = 520000..date = DateTime(2026, 2, 10, 12, 15)..type = 'expense'..categoryId = 'cat-transport'..assetType = bank..note = 'Taksi meeting',
+      TransactionModel()..amount = 450000..date = DateTime(2026, 2, 11, 9, 30)..type = 'expense'..categoryId = 'cat-food'..assetType = wallet..note = 'Sarapan kantor',
+      TransactionModel()..amount = 610000..date = DateTime(2026, 2, 12, 13, 0)..type = 'expense'..categoryId = 'cat-bills'..assetType = bank..note = 'Tagihan internet',
+      TransactionModel()..amount = 530000..date = DateTime(2026, 2, 13, 17, 45)..type = 'expense'..categoryId = 'cat-entertainment'..assetType = credit..note = 'Sewa film',
+      TransactionModel()..amount = 680000..date = DateTime(2026, 2, 14, 21, 0)..type = 'expense'..categoryId = 'cat-entertainment'..assetType = credit..note = 'Makan malam & bioskop',
+      TransactionModel()..amount = 540000..date = DateTime(2026, 2, 15, 13, 10)..type = 'expense'..categoryId = 'cat-food'..assetType = wallet..note = 'Makan siang luar',
+      TransactionModel()..amount = 470000..date = DateTime(2026, 2, 16, 8, 20)..type = 'expense'..categoryId = 'cat-transport'..assetType = cash..note = 'Ojek ke klien',
+      TransactionModel()..amount = 720000..date = DateTime(2026, 2, 17, 11, 0)..type = 'expense'..categoryId = 'cat-shopping'..assetType = bank..note = 'Belanja bulanan ringan',
+      TransactionModel()..amount = 430000..date = DateTime(2026, 2, 18, 19, 0)..type = 'expense'..categoryId = 'cat-food'..assetType = wallet..note = 'Cemilan malam',
+      TransactionModel()..amount = 510000..date = DateTime(2026, 2, 19, 12, 40)..type = 'expense'..categoryId = 'cat-shopping'..assetType = bank..note = 'Alat tulis',
+      TransactionModel()..amount = 620000..date = DateTime(2026, 2, 20, 7, 30)..type = 'expense'..categoryId = 'cat-transport'..assetType = cash..note = 'Transport mingguan',
+      TransactionModel()..amount = 490000..date = DateTime(2026, 2, 21, 15, 30)..type = 'expense'..categoryId = 'cat-entertainment'..assetType = wallet..note = 'Ngopi & boardgame',
+      TransactionModel()..amount = 600000..date = DateTime(2026, 2, 22, 16, 0)..type = 'expense'..categoryId = 'cat-health'..assetType = wallet..note = 'Vitamin & periksa',
+      TransactionModel()..amount = 420000..date = DateTime(2026, 2, 23, 10, 0)..type = 'expense'..categoryId = 'cat-food'..assetType = cash..note = 'Sarapan luar',
+      TransactionModel()..amount = 550000..date = DateTime(2026, 2, 24, 12, 0)..type = 'expense'..categoryId = 'cat-food'..assetType = cash..note = 'Makan siang',
+      TransactionModel()..amount = 450000..date = DateTime(2026, 2, 25, 18, 10)..type = 'expense'..categoryId = 'cat-entertainment'..assetType = credit..note = 'Beli buku digital',
+      TransactionModel()..amount = 520000..date = DateTime(2026, 2, 26, 19, 0)..type = 'expense'..categoryId = 'cat-entertainment'..assetType = wallet..note = 'Langganan streaming',
+      TransactionModel()..amount = 480000..date = DateTime(2026, 2, 27, 18, 0)..type = 'expense'..categoryId = 'cat-bills'..assetType = bank..note = 'Listrik & air',
+      TransactionModel()..amount = 560000..date = DateTime(2026, 2, 28, 12, 25)..type = 'expense'..categoryId = 'cat-food'..assetType = wallet..note = 'Makan siang akhir bulan',
+
+      // Transfers (adjust account balances)
+      TransactionModel()
+        ..amount = 3000000
+        ..date = DateTime(2026, 2, 6, 9, 0)
+        ..type = 'transfer'
+        ..fromAccountId = 'default-bank'
+        ..toAccountId = 'default-card'
+        ..transferFee = 0,
+      TransactionModel()
+        ..amount = 1500000
+        ..date = DateTime(2026, 2, 15, 9, 30)
+        ..type = 'transfer'
+        ..fromAccountId = 'default-bank'
+        ..toAccountId = 'default-ewallet'
+        ..transferFee = 15000,
+    ];
+
+    await _isar.writeTxn(() async {
+      for (final tx in txns) {
+        await _isar.transactionModels.put(tx);
+        if (tx.isTransfer) {
+          // Adjust balances for transfers only.
+          final from = await _isar.accountModels
+              .filter()
+              .uuidEqualTo(tx.fromAccountId ?? '')
+              .findFirst();
+          final to = await _isar.accountModels
+              .filter()
+              .uuidEqualTo(tx.toAccountId ?? '')
+              .findFirst();
+          if (from != null) {
+            from.balance -= (tx.amount + tx.transferFee);
+            await _isar.accountModels.put(from);
+          }
+          if (to != null) {
+            to.balance += tx.amount;
+            await _isar.accountModels.put(to);
+          }
+        }
+      }
+    });
   }
 
   // ══ PRIVATE ════════════════════════════════════════════════════════════════

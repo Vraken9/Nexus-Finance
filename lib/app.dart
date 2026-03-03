@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_colors.dart';
@@ -7,6 +8,8 @@ import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/settings/presentation/settings_screen.dart';
 import 'features/transactions/presentation/transactions_screen.dart';
 import 'shared/providers/isar_provider.dart';
+import 'shared/providers/theme_provider.dart';
+import 'shared/services/dummy_seed_service.dart';
 
 /// ─────────────────────────────────────────────────────────────────────────
 /// NexusApp
@@ -19,10 +22,13 @@ class NexusApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeProvider);
     return MaterialApp(
       title: 'Nexus Finance',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
       home: const _AppShell(),
     );
   }
@@ -55,7 +61,6 @@ class _AppShellState extends ConsumerState<_AppShell> {
 
     return isarState.when(
       loading: () => const Scaffold(
-        backgroundColor: AppColors.background,
         body: Center(
           child: CircularProgressIndicator(color: AppColors.primary),
         ),
@@ -66,16 +71,20 @@ class _AppShellState extends ConsumerState<_AppShell> {
               style: AppTextStyles.bodyMedium),
         ),
       ),
-      data: (_) => Scaffold(
-        body: IndexedStack(
-          index: _selectedIndex,
-          children: _screens,
-        ),
-        bottomNavigationBar: _NexusNavBar(
-          currentIndex: _selectedIndex,
-          onTap: (i) => setState(() => _selectedIndex = i),
-        ),
-      ),
+      data: (_) {
+        // Seed dummy February 2026 data once when DB is ready (safe no-op if already present).
+        scheduleMicrotask(() => DummySeedService.ensureFebruary2026(ref));
+        return Scaffold(
+          body: IndexedStack(
+            index: _selectedIndex,
+            children: _screens,
+          ),
+          bottomNavigationBar: _NexusNavBar(
+            currentIndex: _selectedIndex,
+            onTap: (i) => setState(() => _selectedIndex = i),
+          ),
+        );
+      },
     );
   }
 }
@@ -98,10 +107,13 @@ class _NexusNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surface;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.border;
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.border)),
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        border: Border(top: BorderSide(color: borderColor)),
       ),
       child: SafeArea(
         child: SizedBox(
